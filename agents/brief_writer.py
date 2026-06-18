@@ -7,11 +7,15 @@ import httpx
 import yaml
 from dotenv import load_dotenv
 
+from agents.chain import AGENT_HANDLES, post_human_ready, should_process_agent
+
 load_dotenv()
 
 BAND_BASE_URL = os.getenv("BAND_REST_URL", "https://app.band.ai")
 AIML_BASE_URL = "https://api.aimlapi.com/v1"
 POLL_SECONDS = 3
+AGENT_NAME = "brief_writer"
+OWN_HANDLE = AGENT_HANDLES[AGENT_NAME]
 
 SYSTEM_PROMPT = "You are the BriefWriter agent in a copyright dispute workflow. Based on the case summary and evidence in the message, write a formal cease-and-desist letter addressed to 'The Content Owner'. Include: the specific infringement claim, the original creator's rights, the demanded action, and a 14-day response deadline. Use professional legal language."
 
@@ -123,11 +127,16 @@ def process_message(*, client, api_key, aiml_api_key, chat_id, message):
     if not message_id or not content:
         return
     say(f"BriefWriter found message: {message_id} {content[:200]}")
+    if not should_process_agent(content, AGENT_NAME):
+        say(f"BriefWriter skipping message that is not ready for {OWN_HANDLE}: {message_id}")
+        raise_with_body(client.post(f"{BAND_BASE_URL}/api/v1/agent/chats/{chat_id}/messages/{message_id}/processed", headers=band_headers(api_key)))
+        return
     raise_with_body(client.post(f"{BAND_BASE_URL}/api/v1/agent/chats/{chat_id}/messages/{message_id}/processing", headers=band_headers(api_key)))
     llm_response = ask_aiml(content, aiml_api_key)
     say(f"BriefWriter replying: {llm_response[:300]}")
     mention = get_reply_mention(message)
     raise_with_body(client.post(f"{BAND_BASE_URL}/api/v1/agent/chats/{chat_id}/messages", headers=band_headers(api_key), json={"message": {"content": llm_response, "mentions": [mention]}}))
+    raise_with_body(post_human_ready(client=client, band_base_url=BAND_BASE_URL, headers=band_headers(api_key), chat_id=chat_id, findings=llm_response))
     raise_with_body(client.post(f"{BAND_BASE_URL}/api/v1/agent/chats/{chat_id}/messages/{message_id}/processed", headers=band_headers(api_key)))
     say("BriefWriter done.")
 

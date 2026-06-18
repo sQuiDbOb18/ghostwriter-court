@@ -7,11 +7,16 @@ import httpx
 import yaml
 from dotenv import load_dotenv
 
+from agents.chain import AGENT_HANDLES, post_agent_handoff, should_process_agent
+
 load_dotenv()
 
 BAND_BASE_URL = os.getenv("BAND_REST_URL", "https://app.band.ai")
 AIML_BASE_URL = "https://api.aimlapi.com/v1"
 POLL_SECONDS = 3
+AGENT_NAME = "similarity"
+NEXT_AGENT_NAME = "policy"
+OWN_HANDLE = AGENT_HANDLES[AGENT_NAME]
 
 SYSTEM_PROMPT = "You are the Similarity agent in a copyright dispute workflow. Given two pieces of content or URLs, compare them and return: a similarity score from 0-100, the top 3 specific similarities with examples from both works, and a one-line verdict: Strong Match, Moderate Similarity, or Weak Match. Always respond with your analysis."
 
@@ -125,11 +130,16 @@ def process_message(*, client, api_key, aiml_api_key, chat_id, message):
     if not content:
         return
     say(f"Similarity found message: {message_id} {content[:200]}")
+    if not should_process_agent(content, AGENT_NAME):
+        say(f"Similarity skipping message that is not ready for {OWN_HANDLE}: {message_id}")
+        raise_with_body(client.post(f"{BAND_BASE_URL}/api/v1/agent/chats/{chat_id}/messages/{message_id}/processed", headers=band_headers(api_key)))
+        return
     raise_with_body(client.post(f"{BAND_BASE_URL}/api/v1/agent/chats/{chat_id}/messages/{message_id}/processing", headers=band_headers(api_key)))
     llm_response = ask_aiml(content, aiml_api_key)
     say(f"Similarity replying: {llm_response[:300]}")
     mention = get_reply_mention(message)
     raise_with_body(client.post(f"{BAND_BASE_URL}/api/v1/agent/chats/{chat_id}/messages", headers=band_headers(api_key), json={"message": {"content": llm_response, "mentions": [mention]}}))
+    raise_with_body(post_agent_handoff(client=client, band_base_url=BAND_BASE_URL, api_key=api_key, headers=band_headers(api_key), chat_id=chat_id, current_agent=AGENT_NAME, next_agent=NEXT_AGENT_NAME, incoming_content=content, findings=llm_response))
     raise_with_body(client.post(f"{BAND_BASE_URL}/api/v1/agent/chats/{chat_id}/messages/{message_id}/processed", headers=band_headers(api_key)))
     say("Similarity done.")
 

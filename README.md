@@ -10,6 +10,7 @@ This is not legal advice. It is a workflow demo for triage, evidence organizatio
 - Creates a Band chat room and adds six specialist agents.
 - Routes the submitted URLs to the Investigator agent to begin the workflow.
 - Lets each agent poll Band, process its next message, and reply with a structured analysis.
+- Automatically chains the agents in order, so one Investigator mention can drive the full workflow.
 - Produces practical outputs such as similarity findings, fair-use risk, settlement tiers, a case summary, and a formal demand letter draft.
 
 ## Agent lineup
@@ -44,11 +45,20 @@ Investigator -> Similarity -> Policy -> Negotiator -> Synthesizer -> BriefWriter
 Structured dispute analysis and legal brief draft
 ```
 
+The agent chain is:
+
+```text
+Investigator -> Similarity -> Policy -> Negotiator -> Synthesizer -> BriefWriter -> Human review
+```
+
+Each agent only processes a message when it is their turn. After replying, it posts a new Band message that mentions the next agent by agent ID and includes both the original dispute URLs and its own findings summary. BriefWriter ends the chain by tagging `@officialpeters1` with `Your dispute packet is ready for review.`
+
 Key files:
 
 - `main_router.py` - FastAPI API for creating a new dispute and bootstrapping a Band room.
 - `orchestrator.py` - local runner that starts all six agent pollers in parallel.
 - `agents/` - individual agent pollers and prompts.
+- `agents/chain.py` - shared chain order, handle checks, agent ID loading, and handoff message helpers.
 - `outputs/` - placeholder directory for generated artifacts.
 - `requirements.txt` / `pyproject.toml` - Python dependencies.
 - `render.yaml` - Render deployment configuration.
@@ -104,16 +114,22 @@ The agents can also read their Band API keys from `agent_config.yaml` using this
 
 ```yaml
 investigator:
+  agent_id: your_investigator_agent_id
   api_key: your_key
 similarity:
+  agent_id: your_similarity_agent_id
   api_key: your_key
 policy:
+  agent_id: your_policy_agent_id
   api_key: your_key
 negotiator:
+  agent_id: your_negotiator_agent_id
   api_key: your_key
 synthesizer:
+  agent_id: your_synthesizer_agent_id
   api_key: your_key
 brief_writer:
+  agent_id: your_brief_writer_agent_id
   api_key: your_key
 ```
 
@@ -190,7 +206,19 @@ Returns:
 2. Start the orchestrator so all six agents are polling.
 3. Submit an original URL and suspected copy URL.
 4. Open the Band room returned by `/new-dispute`.
-5. Watch the agents build the case record and produce a draft enforcement path.
+5. Send or verify the first message mentions `@officialpeters1/investigator`.
+6. Watch Investigator hand off to Similarity, then Policy, Negotiator, Synthesizer, and BriefWriter.
+7. Review the final BriefWriter message when it tags `@officialpeters1`.
+
+You can also start the chain manually in an existing Band room by sending one message like:
+
+```text
+@officialpeters1/investigator New dispute submitted.
+Original URL: https://example.com/original-work
+Infringing URL: https://example.com/suspected-copy
+
+Please investigate both URLs and start the workflow.
+```
 
 ## Why it matters
 

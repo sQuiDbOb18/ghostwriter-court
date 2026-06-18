@@ -7,11 +7,16 @@ import httpx
 import yaml
 from dotenv import load_dotenv
 
+from agents.chain import AGENT_HANDLES, post_agent_handoff, should_process_agent
+
 load_dotenv()
 
 BAND_BASE_URL = os.getenv("BAND_REST_URL", "https://app.band.ai")
 AIML_BASE_URL = "https://api.aimlapi.com/v1"
 POLL_SECONDS = 3
+AGENT_NAME = "investigator"
+NEXT_AGENT_NAME = "similarity"
+OWN_HANDLE = AGENT_HANDLES[AGENT_NAME]
 
 SYSTEM_PROMPT = "You are the Investigator agent in a copyright dispute workflow. When given URLs, describe what you would find there (title, creator, date, content type) and provide a structured findings summary. Always respond with your analysis."
 
@@ -155,6 +160,16 @@ def process_message(
 
     say(f"Found message: {message_id} {content[:300]}")
 
+    if not should_process_agent(content, AGENT_NAME):
+        say(f"Skipping message that is not ready for {OWN_HANDLE}: {message_id}")
+        raise_with_body(
+            client.post(
+                f"{BAND_BASE_URL}/api/v1/agent/chats/{chat_id}/messages/{message_id}/processed",
+                headers=band_headers(api_key),
+            )
+        )
+        return
+
     raise_with_body(
         client.post(
             f"{BAND_BASE_URL}/api/v1/agent/chats/{chat_id}/messages/{message_id}/processing",
@@ -179,6 +194,19 @@ def process_message(
         json=send_body,
     )
     raise_with_body(send_response)
+
+    handoff_response = post_agent_handoff(
+        client=client,
+        band_base_url=BAND_BASE_URL,
+        api_key=api_key,
+        headers=band_headers(api_key),
+        chat_id=chat_id,
+        current_agent=AGENT_NAME,
+        next_agent=NEXT_AGENT_NAME,
+        incoming_content=content,
+        findings=llm_response,
+    )
+    raise_with_body(handoff_response)
 
     processed_response = client.post(
         f"{BAND_BASE_URL}/api/v1/agent/chats/{chat_id}/messages/{message_id}/processed",
