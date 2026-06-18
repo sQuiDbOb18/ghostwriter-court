@@ -1,0 +1,39 @@
+services:
+  - type: web
+    name: ghostwriter-court
+    env: python
+    plan: free
+    pythonVersion: "3.11"
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn orchestrator:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: INVESTIGATOR_AGENT_ID
+        value: c53bfd52-94d3-4575-a341-c33b02110963
+      - key: INVESTIGATOR_API_KEY
+        value: band_a_1781442786_nomxnPv03VxgWgAKu26Gpw1QAeSVuYYA
+      - key: SIMILARITY_AGENT_ID
+        value: dc5b762c-9570-4d58-9812-44ce223d6e09
+      - key: SIMILARITY_API_KEY
+        value: band_a_1781442992_fn5pm4-zRaBNRwxYvDnMpJt33FzSe6ks
+      - key: POLICY_AGENT_ID
+        value: 9ae34dea-596d-4678-93f8-5a4c8ba03917
+      - key: POLICY_API_KEY
+        value: band_a_1781443207_uydgWNCB7wtzZVdqXtxfBxuKDuAuxLj3
+      - key: NEGOTIATOR_AGENT_ID
+        value: 702d8c92-af2a-4549-bc59-a8eb6b84b4f6
+      - key: NEGOTIATOR_API_KEY
+        value: band_a_1781443246_MazWd5qQ4FIfUJsFQTyFcuUqzm1veBwd
+      - key: SYNTHESIZER_AGENT_ID
+        value: a970c13a-249e-4ee8-8daf-eebe46eeef4c
+      - key: SYNTHESIZER_API_KEY
+        value: band_a_1781443297_NM0GV89vMCZ1PE3blpmprduXMVJvukns
+      - key: BRIEFWRITER_AGENT_ID
+        value: d256ca17-8b66-4570-b5c7-bc61b5862c98
+      - key: BRIEFWRITER_API_KEY
+        value: band_a_1781443343_LykdVMpDUewpuFiTyTMwhkblSj7BLCyB
+      - key: ANTHROPIC_API_KEY
+        value: xxx
+      - key: AIML_API_KEY
+        value: xxx
+      - key: FEATHERLESS_API_KEY
+        value: xxx

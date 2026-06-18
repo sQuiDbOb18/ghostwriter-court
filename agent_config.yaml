@@ -1,0 +1,23 @@
+investigator:
+  agent_id: c53bfd52-94d3-4575-a341-c33b02110963
+  api_key: band_a_1781442786_nomxnPv03VxgWgAKu26Gpw1QAeSVuYYA
+
+similarity:
+  agent_id: dc5b762c-9570-4d58-9812-44ce223d6e09
+  api_key: band_a_1781442992_fn5pm4-zRaBNRwxYvDnMpJt33FzSe6ks
+
+policy:
+  agent_id: 9ae34dea-596d-4678-93f8-5a4c8ba03917
+  api_key: band_a_1781443207_uydgWNCB7wtzZVdqXtxfBxuKDuAuxLj3
+
+negotiator:
+  agent_id: 702d8c92-af2a-4549-bc59-a8eb6b84b4f6
+  api_key: band_a_1781443246_MazWd5qQ4FIfUJsFQTyFcuUqzm1veBwd
+
+synthesizer:
+  agent_id: a970c13a-249e-4ee8-8daf-eebe46eeef4c
+  api_key: band_a_1781443297_NM0GV89vMCZ1PE3blpmprduXMVJvukns
+
+brief_writer:
+  agent_id: d256ca17-8b66-4570-b5c7-bc61b5862c98
+  api_key: band_a_1781443343_LykdVMpDUewpuFiTyTMwhkblSj7BLCyB

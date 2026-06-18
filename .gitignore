@@ -19,3 +19,7 @@ wheels/
 
 # OS/editor noise
 .DS_Store
+
+# Generated dispute packets
+outputs/*.pdf
+!outputs/.gitkeep
