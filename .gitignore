@@ -23,3 +23,5 @@ wheels/
 # Generated dispute packets
 outputs/*.pdf
 !outputs/.gitkeep
+.env
+agent_config.yaml
