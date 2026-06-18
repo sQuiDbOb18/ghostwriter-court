@@ -54,12 +54,10 @@ def band_headers(api_key: str) -> dict[str, str]:
 
 
 def raise_with_body(response: httpx.Response) -> None:
-    try:
-        response.raise_for_status()
-    except httpx.HTTPStatusError:
+    if getattr(response, "status_code", 0) >= 400:
         say(f"HTTP error {response.status_code} {response.request.method} {response.request.url}")
         say(f"Response body: {response.text}")
-        raise
+        response.raise_for_status()
 
 
 def extract_list(payload: Any) -> list[dict[str, Any]]:
@@ -160,8 +158,14 @@ def process_message(
 
     say(f"Found message: {message_id} {content[:300]}")
 
-    if not should_process_agent(content, AGENT_NAME):
+    if not should_process_agent(message, AGENT_NAME):
         say(f"Skipping message that is not ready for {OWN_HANDLE}: {message_id}")
+        raise_with_body(
+            client.post(
+                f"{BAND_BASE_URL}/api/v1/agent/chats/{chat_id}/messages/{message_id}/processing",
+                headers=band_headers(api_key),
+            )
+        )
         raise_with_body(
             client.post(
                 f"{BAND_BASE_URL}/api/v1/agent/chats/{chat_id}/messages/{message_id}/processed",
@@ -179,21 +183,6 @@ def process_message(
 
     llm_response = ask_aiml(content, aiml_api_key)
     say(f"Replying: {llm_response[:500]}")
-
-    mention = get_reply_mention(message)
-    send_body = {
-        "message": {
-            "content": llm_response,
-            "mentions": [mention],
-        }
-    }
-    say(f"Send body: {send_body}")
-    send_response = client.post(
-        f"{BAND_BASE_URL}/api/v1/agent/chats/{chat_id}/messages",
-        headers=band_headers(api_key),
-        json=send_body,
-    )
-    raise_with_body(send_response)
 
     handoff_response = post_agent_handoff(
         client=client,
